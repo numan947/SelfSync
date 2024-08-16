@@ -1,0 +1,417 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  selfsync_backend
+  SAM Template for creating the backend of SelfSync.
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+  Api:
+    Cors:
+      AllowMethods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,X-Amz-Security-Token,Authorization,X-Api-Key,X-Requested-With,Accept,Access-Control-Allow-Methods,Access-Control-Allow-Origin,Access-Control-Allow-Headers,X-Amz-User-Agent'"
+      AllowOrigin: "'*'"
+    Auth:
+      DefaultAuthorizer: CognitoAuthorizer
+      AddDefaultAuthorizerToCorsPreflight: false
+      Authorizers:
+        CognitoAuthorizer:
+          UserPoolArn: <USERPOOLARN> # PROVIDE COGNITO USER POOL ID HERE
+
+Parameters:
+  ParamStageName:
+    Type: String
+    Default: default
+    Description: The stage name of the API Gateway
+
+Resources:
+  SelfSyncRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: SelfSyncRestApi
+      StageName: !Ref ParamStageName
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: <USERPOOLARN> # PROVIDE COGNITO USER POOL ID HERE
+
+
+#############SUMMARY LAMBDA WITH ACCESS TO ALL TABLES ##################
+  GetSummaryLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: summary.get_summary
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MemoriesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TodosTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          BUDGET_TABLE: !Ref BudgetTable
+          MEMORIES_TABLE: !Ref MemoriesTable
+          NOTES_TABLE: !Ref NotesTable
+          TODOS_TABLE: !Ref TodosTable
+
+      Events:
+        GetSummaryEvent:
+          Type: Api
+          Properties:
+            Path: /summary/
+            Method: get
+            RestApiId: !Ref SelfSyncRestApi
+
+########## BudgetTable####################
+  BudgetTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BudgetTable
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: budgetId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: budgetId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: "Name"
+          Value: "BudgetTable"
+
+  CreateOrUpdateBudgetLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: budget.create_or_update_budget
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref BudgetTable
+      Events:
+        CreateOrUpdateBudgetEvent:
+          Type: Api
+          Properties:
+            Path: /budget/createOrUpdate
+            Method: post
+            RestApiId: !Ref SelfSyncRestApi
+
+  GetBudgetLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: budget.get_budget
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref BudgetTable
+      Events:
+        GetBudgetEvent:
+          Type: Api
+          Properties:
+            Path: /budget/
+            Method: get
+            RestApiId: !Ref SelfSyncRestApi
+
+  DeleteBudgetLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: budget.delete_budget
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref BudgetTable
+      Events:
+        DeleteBudgetEvent:
+          Type: Api
+          Properties:
+            Path: /budget/delete/
+            Method: delete
+            RestApiId: !Ref SelfSyncRestApi
+
+
+########### MemoriesTable##################
+  MemoriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: MemoriesTable
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: memoriesId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: memoriesId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: "Name"
+          Value: "MemoriesTable"
+
+  CreateOrUpdateMemoriesLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: memories.create_or_update_memories
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MemoriesTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MemoriesTable
+      Events:
+        CreateMemoryEvent:
+          Type: Api
+          Properties:
+            Path: /memories/createOrUpdate
+            Method: post
+            RestApiId: !Ref SelfSyncRestApi
+
+  GetMemoriesLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: memories.get_memories
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MemoriesTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MemoriesTable
+      Events:
+        GetMemoriesEvent:
+          Type: Api
+          Properties:
+            Path: /memories/
+            Method: get
+            RestApiId: !Ref SelfSyncRestApi
+
+  DeleteMemoryLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties: 
+      Handler: memories.delete_memories
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MemoriesTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MemoriesTable
+      Events:
+        DeleteMemoryEvent:
+          Type: Api
+          Properties:
+            Path: /memories/delete/
+            Method: delete
+            RestApiId: !Ref SelfSyncRestApi
+
+
+
+
+########### TODOs ###########
+  TodosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TodosTable
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: todoId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: todoId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: "Name"
+          Value: "TodosTable"
+  
+  CreateOrUpdateTodoLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: todos.create_or_update_todo
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TodosTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TodosTable
+      Events:
+        CreateOrUpdateTodoEvent:
+          Type: Api
+          Properties:
+            Path: /todos/createOrUpdate
+            Method: post
+            RestApiId: !Ref SelfSyncRestApi
+  
+  GetTodosLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: todos.get_todos
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TodosTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TodosTable
+      Events:
+        GetTodosEvent:
+          Type: Api
+          Properties:
+            Path: /todos/
+            Method: get
+            RestApiId: !Ref SelfSyncRestApi
+  
+  DeleteTodoLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: todos.delete_todo
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TodosTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TodosTable
+      Events:
+        DeleteTodoEvent:
+          Type: Api
+          Properties:
+            Path: /todos/delete/
+            Method: delete
+            RestApiId: !Ref SelfSyncRestApi
+
+
+#### NOTES: Lambda Functions ####
+  NotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: NotesTable
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: noteId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: noteId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: "Name"
+          Value: "NotesTable"
+
+  CreateNoteLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: notes.create_or_edit_note
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NotesTable
+      Events:
+        CreateNoteEvent:
+          Type: Api
+          Properties:
+            Path: /notes/createOrEdit
+            Method: post
+            RestApiId: !Ref SelfSyncRestApi
+
+  ReadNoteLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: notes.get_notes
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NotesTable
+      Events:
+        GetAllNotesEvent:
+          Type: Api
+          Properties:
+            Path: /notes/
+            Method: get
+            RestApiId: !Ref SelfSyncRestApi
+
+
+  DeleteNoteLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: notes.delete_note
+      Runtime: python3.11
+      CodeUri: handlers/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NotesTable
+      Events:
+        DeleteNoteEvent:
+          Type: Api
+          Properties:
+            Path: /notes/delete/
+            Method: delete
+            RestApiId: !Ref SelfSyncRestApi
+
+Outputs:
+  ApiGatewayUrl:
+    Description: "API Gateway URL"
+    Value: !Sub "https://${SelfSyncRestApi}.execute-api.${AWS::Region}.amazonaws.com/${ParamStageName}/"
