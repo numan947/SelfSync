@@ -1,5 +1,7 @@
 # Building SelfSync
 
+Please checkout the `SelfSync-Basic-Idea.pdf` file for the basic idea of the project.
+
 SelfSync has two parts: a frontend built using Flutter framework and Amplify, and a backend built using AWS Serverless Architecture Model (SAM) templates.
 
 ### Amplify Documentation:
