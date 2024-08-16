@@ -70,3 +70,18 @@ flutter run
 ```
 
 This should start the application on the device/emulator.
+
+
+## Demo Screenshots
+
+![](./Screenshots/ss1.png)
+
+![](./Screenshots/ss2.png)
+
+![](./Screenshots/ss3.png)
+
+![](./Screenshots/ss4.png)
+
+![](./Screenshots/ss5.png)
+
+![](./Screenshots/ss6.png)
