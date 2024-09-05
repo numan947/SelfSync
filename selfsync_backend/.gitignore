@@ -241,4 +241,27 @@ $RECYCLE.BIN/
 
 */build/*
 
+
+
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
+# Created by https://www.toptal.com/developers/gitignore/api/sam,sam+config
+# Edit at https://www.toptal.com/developers/gitignore?templates=sam,sam+config
+
+### SAM ###
+# Ignore build directories for the AWS Serverless Application Model (SAM)
+# Info: https://aws.amazon.com/serverless/sam/
+# Docs: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-reference.html
+
+**/.aws-sam
+
+### SAM+config ###
+# Ignore build directories for the AWS Serverless Application Model (SAM)
+# Info: https://aws.amazon.com/serverless/sam/
+# Docs: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-reference.html
+
+
+### SAM+config Patch ###
+# SAM config - exclude this file if sharing publicly
+samconfig.toml
+
+# End of https://www.toptal.com/developers/gitignore/api/sam,sam+config
